@@ -6,6 +6,7 @@ SOURCES=stream.c hooks.c mpegts.c httplivestreaming.c state.c log.c text.c times
 HEADERS=hooks.h mpegts.h httplivestreaming.h state.h log.h text.h timestamp.h subtitle.h dispmanx.h
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=picam
+EXECUTABLE_STRIPPED=picam.stripped
 RASPBERRYPI=$(shell sh ./whichpi)
 GCCVERSION=$(shell gcc --version | grep ^gcc | sed "s/.* //g")
 
@@ -20,13 +21,17 @@ else  # other gcc versions
 endif
 endif
 
-all: $(SOURCES) $(EXECUTABLE)
+all: $(SOURCES) $(EXECUTABLE) $(EXECUTABLE_STRIPPED)
+
+$(EXECUTABLE_STRIPPED): $(EXECUTABLE)
+	strip $< -o $@
 
 $(EXECUTABLE): $(OBJECTS) $(DEP_LIBS)
 	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
 
 %.o: %.c $(HEADERS)
 	$(CC) -c $< -o $@ $(CFLAGS)
+
 
 .PHONY: clean
 
