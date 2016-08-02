@@ -153,6 +153,8 @@ static int video_hflip;
 static const int video_hflip_default = 0;
 static int video_vflip;
 static const int video_vflip_default = 0;
+static int video_preview_hflip = 0;
+static int video_preview_vflip = 0;
 static long video_bitrate;
 static const long video_bitrate_default = 2000 * 1000; // 2 Mbps
 
@@ -3355,7 +3357,7 @@ static int openmax_cam_open() {
       exit(EXIT_FAILURE);
     }
 
-    // image mirroring (horizontal/vertical flip)
+    // image mirroring (horizontal/vertical flip) - has to be in sync with camera port settings
     memset(&mirror, 0, sizeof(OMX_CONFIG_MIRRORTYPE));
     mirror.nSize = sizeof(OMX_CONFIG_MIRRORTYPE);
     mirror.nVersion.nVersion = OMX_VERSION;
@@ -3414,8 +3416,19 @@ static int openmax_cam_open() {
       exit(EXIT_FAILURE);
     }
 
-    // Set the opacity and layer of the preview window
-    display_region.set = OMX_DISPLAY_SET_ALPHA | OMX_DISPLAY_SET_LAYER;
+    // set preview video renderer component mirroring
+    if (video_preview_hflip && video_preview_vflip) {
+      display_region.transform = OMX_DISPLAY_ROT180;
+    } else if (video_preview_hflip) {
+      display_region.transform = OMX_DISPLAY_MIRROR_ROT0;
+    } else if (video_preview_vflip) {
+      display_region.transform = OMX_DISPLAY_MIRROR_ROT180;
+    } else {
+        display_region.transform = 0;
+    }
+
+    // Set the opacity, layer and transform of the preview window
+    display_region.set = OMX_DISPLAY_SET_ALPHA | OMX_DISPLAY_SET_LAYER | OMX_DISPLAY_SET_TRANSFORM;
     display_region.alpha = (OMX_U32) preview_opacity;
     display_region.layer = DISP_LAYER_VIDEO_PREVIEW;
     error = OMX_SetParameter(ILC_GET_HANDLE(render_component),
@@ -4464,7 +4477,9 @@ static void print_usage() {
   log_info("  --rotation <num>    Image rotation in clockwise degrees\n");
   log_info("                      (0, 90, 180, 270)\n");
   log_info("  --hflip             Flip image horizontally\n");
+  log_info("  --hflip-preview     Flip image horizontally only in preview\n");
   log_info("  --vflip             Flip image vertically\n");
+  log_info("  --vflip-preview     Flip image vertically only in preview\n");
   log_info("  --avcprofile <str>  Set AVC/H.264 profile to one of:\n");
   log_info("                      constrained_baseline/baseline/main/high\n");
   log_info("                      (default: %s)\n", video_avc_profile_default);
@@ -4600,7 +4615,9 @@ int main(int argc, char **argv) {
     { "gopsize", required_argument, NULL, 'g' },
     { "rotation", required_argument, NULL, 0 },
     { "hflip", no_argument, NULL, 0 },
+    { "hflip-preview", no_argument, NULL, 0 },
     { "vflip", no_argument, NULL, 0 },
+    { "vflip-preview", no_argument, NULL, 0 },
     { "avcprofile", required_argument, NULL, 0 },
     { "avclevel", required_argument, NULL, 0 },
     { "qpmin", required_argument, NULL, 0 },
@@ -4787,10 +4804,16 @@ int main(int argc, char **argv) {
           video_rotation = value;
           break;
         } else if (strcmp(long_options[option_index].name, "hflip") == 0) {
-          video_hflip = 1;
+          video_hflip = 1; // the preview will also be flipped because of incomming data
+          break;
+        } else if (strcmp(long_options[option_index].name, "hflip-preview") == 0) {
+          video_preview_hflip = 1;
           break;
         } else if (strcmp(long_options[option_index].name, "vflip") == 0) {
-          video_vflip = 1;
+          video_vflip = 1; // the preview will also be flipped because of incomming data
+          break;
+        } else if (strcmp(long_options[option_index].name, "vflip-preview") == 0) {
+          video_preview_vflip = 1;
           break;
         } else if (strcmp(long_options[option_index].name, "avcprofile") == 0) {
           strncpy(video_avc_profile, optarg, sizeof(video_avc_profile) - 1);
@@ -5551,7 +5574,9 @@ int main(int argc, char **argv) {
   log_debug("video_gop_size=%d\n", video_gop_size);
   log_debug("video_rotation=%d\n", video_rotation);
   log_debug("video_hflip=%d\n", video_hflip);
+  log_debug("video_preview_hflip=%d\n", video_preview_hflip);
   log_debug("video_vflip=%d\n", video_vflip);
+  log_debug("video_preview_vflip=%d\n", video_preview_vflip);
   log_debug("video_bitrate=%ld\n", video_bitrate);
   log_debug("video_avc_profile=%s\n", video_avc_profile);
   log_debug("video_avc_level=%s\n", video_avc_level);

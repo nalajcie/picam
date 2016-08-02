@@ -204,7 +204,9 @@ To unmute microphone, create a file named `hooks/unmute`.
       --rotation <num>    Image rotation in clockwise degrees
                           (0, 90, 180, 270)
       --hflip             Flip image horizontally
+      --hflip-preview     Flip image horizontally only in preview
       --vflip             Flip image vertically
+      --hflip-preview     Flip image vertically only in preview
       --avcprofile <str>  Set AVC/H.264 profile to one of:
                           constrained_baseline/baseline/main/high
                           (default: constrained_baseline)
