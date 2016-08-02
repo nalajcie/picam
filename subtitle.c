@@ -11,6 +11,11 @@ const static char *default_font_name = "sans";
 static int text_id = -1;
 static int64_t hide_time = 0;
 
+static char current_font_file[256] = { 0x00 };
+static long current_face_index = 0;
+static int  current_points;
+static int  current_dpi;
+
 /**
  * Initializes the timestamp library with a font name.
  */
@@ -31,15 +36,29 @@ void subtitle_init_with_font_name(const char *font_name, int points, int dpi) {
  * Initializes the timestamp library with a font file and face index.
  */
 void subtitle_init(const char *font_file, long face_index, int points, int dpi) {
-  if (text_id != -1) {
-    text_destroy(text_id);
+  // avoid subtitle blinking when using the same font
+  if ((text_id == -1) // no current subtitle
+      || (strcmp(font_file, current_font_file) != 0) // current subtitle have different font
+      || (face_index != current_face_index)
+      || (points != current_points)
+      || (dpi != current_dpi))
+  {
+    if (text_id != -1) {
+      text_destroy(text_id);
+    }
+    text_id = text_create(
+      font_file, face_index,
+      points,
+      dpi
+    );
+
+    strncpy(current_font_file, font_file, sizeof(current_font_file) - 1);
+    current_font_file[sizeof(current_font_file) - 1] = '\0';
+    current_face_index = face_index;
+    current_points = points;
+    current_dpi = dpi;
   }
 
-  text_id = text_create(
-    font_file, face_index,
-    points,
-    dpi
-  );
   text_set_stroke_color(text_id, 0x000000);
   text_set_letter_spacing(text_id, 1);
   text_set_color(text_id, 0xffffff);
